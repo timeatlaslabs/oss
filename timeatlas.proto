@@ -1,0 +1,956 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+message FullDirectory {
+  repeated Event events = 1;
+
+  repeated JournalEntry journal_entries = 2;
+
+  repeated KnownPlace known_places = 3;
+
+  repeated Media media = 4;
+
+  repeated PatMessage pat_messages = 5;
+
+  repeated Tally tallies = 6;
+
+  repeated AIProfile ai_profiles = 8;
+
+  repeated Embedding embeddings = 9;
+
+  repeated Pattern patterns = 10;
+
+  repeated ChatLearning chat_learnings = 11;
+
+  repeated Weather weather = 12;
+
+  repeated CalendarEvent calendar_events = 13;
+
+  repeated SettingsValues settings_values = 14;
+
+  repeated PrimaryDevice primary_devices = 15;
+
+  reserved 7;
+}
+
+message AIProfile {
+  Meta meta = 1;
+
+  AIProfilePurpose purpose = 2;
+
+  int32 version = 3;
+
+  string prompt = 4;
+
+  string computed_input = 5;
+
+  string model = 6;
+
+  string profile_text = 7;
+}
+
+message AggregatedWeather {
+  double min_temperature_celsius = 1;
+
+  double max_temperature_celsius = 2;
+
+  double avg_temperature_celsius = 3;
+
+  map<string, uint32> condition_counts = 4;
+
+  uint32 num_days = 5;
+}
+
+message AppIntroductionState {
+  repeated IntroductionContent shown = 1;
+
+  repeated IntroductionContent dismissed_or_completed = 2;
+}
+
+message Attendee {
+  optional string name = 1;
+
+  string email = 2;
+
+  AttendeeRole role = 3;
+
+  AttendeeStatus status = 4;
+}
+
+message BentoSelection {
+  oneof content {
+    Media photo = 10;
+
+    bool map = 11;
+
+    StatsSelection stats = 12;
+
+    string spotlight = 13;
+
+    AggregatedWeather weather = 14;
+  }
+}
+
+message BentoSelections {
+  map<int32, BentoSelection> selections = 1;
+}
+
+message CalendarEvent {
+  Meta meta = 1;
+
+  string uid = 2;
+
+  string summary = 3;
+
+  google.protobuf.Timestamp start_at = 4;
+
+  google.protobuf.Timestamp end_at = 5;
+
+  bool is_all_day = 6;
+
+  optional google.protobuf.Timestamp created_at = 9;
+
+  optional google.protobuf.Timestamp last_modified_at = 10;
+
+  optional string location = 100;
+
+  optional Location geo_location = 101;
+
+  optional string description = 200;
+
+  optional string timezone = 300;
+
+  optional Organizer organizer = 400;
+
+  repeated Attendee attendees = 401;
+
+  reserved 7, 8;
+}
+
+message ChatLearning {
+  Meta meta = 1;
+
+  string learning = 2;
+}
+
+message ClassificationLabel {
+  string label = 1;
+
+  double confidence = 2;
+}
+
+message DailyDialogueMetadata {
+  string date_string = 1;
+
+  repeated DailyDialoguePlaceSuggestion place_suggestions = 2;
+
+  map<uint32, string> visitNumToEventID = 4;
+
+  string user_reply = 100;
+
+  string consolidation_response = 101;
+}
+
+message DailyDialoguePlaceSuggestion {
+  uint32 order_num = 1;
+
+  string display_name = 2;
+
+  optional string visit_category = 3;
+
+  optional string known_placeID = 4;
+
+  optional string foursquareID = 5;
+
+  repeated string categories = 6;
+
+  bool shown_to_user = 7;
+
+  repeated string private_categories = 8;
+
+  repeated string alternative_names = 10;
+}
+
+message DashboardConfiguration {
+  repeated DashboardSection ordering = 1;
+
+  repeated DashboardSection disabled = 2;
+}
+
+message DateEvent {
+  string date = 1;
+
+  bool favorite = 2;
+
+  bool hide_summary = 3;
+
+  optional BentoSelections bento_selections = 5;
+
+  optional ExternalData external_data = 11;
+
+  reserved 4, 10;
+}
+
+message Embedding {
+  Meta meta = 1;
+
+  string version = 2;
+
+  string model = 3;
+
+  EmbeddingType type = 4;
+
+  string source_id = 5;
+
+  repeated float vector = 100;
+}
+
+message Event {
+  Meta meta = 1;
+
+  TimestampWithOffset start_at = 2;
+
+  optional TimestampWithOffset end_at = 3;
+
+  EventType type = 4;
+
+  string source = 5;
+
+  repeated string local_photo_ids = 6;
+
+  repeated UserLabel user_defined_labels = 8;
+
+  optional string appID = 9;
+
+  PlaceVisit place_visit = 100;
+
+  DateEvent date_event = 101;
+
+  Movement movement = 102;
+
+  NoDataPeriod no_data_period = 103;
+
+  Workout workout = 104;
+
+  Sleep sleep = 105;
+
+  EventGroup event_group = 106;
+
+  Trip trip = 107;
+
+  optional string diagnostics_json = 108;
+
+  repeated string hidden_from_feed_dates = 109;
+
+  repeated string mediaIDs = 200 [json_name = "mediaIds"];
+
+  map<string, ListOfStrings> date_to_media_ids = 202;
+
+  reserved 7, 10, 201;
+}
+
+message EventGroup {
+  optional string name = 1;
+
+  repeated GeoLocale locales = 2;
+
+  bool user_set_name = 3;
+
+  EventGroupType group_type = 4;
+}
+
+message ExternalData {
+  uint32 steps = 1;
+
+  repeated Location photo_locations = 2;
+
+  int32 version = 10;
+}
+
+message GeoLocale {
+  string country_code = 1;
+
+  string city_or_county = 2;
+
+  string region = 3;
+}
+
+message ImageClassification {
+  repeated ClassificationLabel labels = 1;
+
+  ImageQualityMetrics quality = 2;
+
+  google.protobuf.Timestamp analyzed_at = 3;
+
+  int32 version = 4;
+
+  optional NormalizedRect salient_rect = 5;
+}
+
+message ImageQualityMetrics {
+  bool is_utility = 3;
+
+  double aesthetics_score = 4;
+
+  double saliency_score = 5;
+
+  double resolution_score = 6;
+
+  double sharpness_score = 7;
+
+  reserved 1, 2;
+}
+
+message JournalEntry {
+  Meta meta = 1;
+
+  string eventID = 2 [json_name = "eventId"];
+
+  string source = 3;
+
+  string text = 4;
+
+  string replyID = 5 [json_name = "replyId"];
+
+  repeated string local_photo_ids = 6;
+
+  repeated Reaction reactions = 7;
+
+  bool is_dictated = 8;
+
+  bool is_ai_rewritten = 9;
+
+  repeated string activities = 100;
+
+  repeated string mediaIDs = 101 [json_name = "mediaIds"];
+
+  repeated string people = 102;
+
+  repeated string tags = 103;
+}
+
+message KnownPlace {
+  Meta meta = 1;
+
+  Location location = 2;
+
+  string name = 3;
+
+  optional string city_or_county = 5;
+
+  optional string country_code = 6;
+
+  optional string address = 7;
+
+  repeated string categories = 8;
+
+  repeated PrivateCategoryAssignment private_categories = 9;
+
+  repeated string wifiIDs = 10;
+
+  optional string region = 11;
+
+  optional TimestampWithOffset valid_from = 100;
+
+  optional TimestampWithOffset valid_to = 101;
+
+  optional string externalID = 102 [json_name = "externalId"];
+
+  reserved 4;
+}
+
+message ListOfStrings {
+  repeated string values = 1;
+}
+
+message Location {
+  double lon = 1;
+
+  double lat = 2;
+
+  optional double horizontal_accuracy = 3;
+
+  optional uint32 time_offset_secs = 4;
+
+  optional double altitude = 5;
+
+  bool interpolated = 6;
+
+  optional string timezone = 100;
+
+  optional double radius = 101;
+
+  optional string airport_code = 102;
+}
+
+message ManualWorkoutPattern {
+  string known_placeID = 1 [json_name = "knownPlaceId"];
+
+  uint32 healthkit_activity_type = 2;
+
+  uint32 duration_overhead = 3;
+}
+
+message Media {
+  Meta meta = 1;
+
+  string format = 2;
+
+  optional string path = 3;
+
+  optional string public_url = 4;
+
+  optional string apple_cloud_identifier = 5;
+
+  optional string filename = 6;
+
+  google.protobuf.Timestamp created_timestamp = 7;
+
+  optional Location location = 8;
+
+  optional google.protobuf.Timestamp modified_timestamp = 9;
+
+  bool imported = 10;
+
+  optional string ai_summary = 100;
+
+  optional ImageClassification classification = 101;
+
+  optional string app_asset_name = 102;
+
+  optional string legacy_path = 500;
+}
+
+message Meta {
+  string ID = 1 [json_name = "id"];
+
+  TimestampWithOffset created_at = 2;
+
+  TimestampWithOffset updated_at = 3;
+
+  TimestampWithOffset deleted_at = 4;
+}
+
+message MoveActivity {
+  string activity = 1;
+
+  TimestampWithOffset start_at = 2;
+
+  uint32 duration_secs = 3;
+
+  uint32 distance_meters = 4;
+
+  uint32 steps = 5;
+
+  repeated Location trajectory = 6;
+
+  uint32 kcal = 7;
+
+  bool user_corrected = 8;
+
+  bool apple_health_override = 9;
+
+  optional string apple_health_id = 10;
+
+  bool synced_samples_to_apple_health = 12;
+
+  reserved 11;
+}
+
+message Movement {
+  Location start_loc = 1;
+
+  Location end_loc = 2;
+
+  repeated MoveActivity move_activities = 3;
+
+  PhoneActivity phone_activity = 4;
+
+  optional string name = 5;
+
+  bool synthetic = 6;
+}
+
+message MovementActivityPattern {
+  string eventID = 1;
+}
+
+message NoDataPeriod {
+  repeated MoveActivity synced_activities = 1;
+
+  optional string reason = 100;
+}
+
+message NormalizedRect {
+  double x = 1;
+
+  double y = 2;
+
+  double width = 3;
+
+  double height = 4;
+}
+
+message Organizer {
+  optional string name = 1;
+
+  string email = 2;
+}
+
+message PatMessage {
+  Meta meta = 1;
+
+  Recipient recipient = 2;
+
+  string content_plain = 3;
+
+  DailyDialogueMetadata daily_dialogue_meta = 4;
+
+  Transport transport = 5;
+
+  string in_reply_to = 6;
+
+  string subject = 7;
+
+  optional string externalID = 100;
+}
+
+message Pattern {
+  Meta meta = 1;
+
+  PatternType type = 2;
+
+  MovementActivityPattern movement_activity_pattern = 10;
+
+  TallyPattern tally_pattern = 11;
+
+  ManualWorkoutPattern manual_workout_pattern = 12;
+}
+
+message PhoneActivity {
+  uint32 resolution_secs = 1;
+
+  repeated uint32 phone_open_time_offsets = 2;
+}
+
+message PlaceVisit {
+  Location location = 1;
+
+  optional string name = 2;
+
+  optional string secondary_name = 3;
+
+  bool requires_reverse_geo = 4;
+
+  optional string city_or_county = 5;
+
+  optional string country_code = 6;
+
+  repeated string wifiIDs = 10;
+
+  optional string region = 11;
+
+  PhoneActivity phone_activity = 12;
+
+  map<string, uint32> wifi_durations = 13;
+
+  TimestampWithOffset viewed_time = 14;
+
+  optional string known_placeID = 100 [json_name = "knownPlaceId"];
+
+  bool is_user_labeled = 101;
+
+  repeated MoveActivity inside_activities = 102;
+
+  repeated Location locations = 103;
+
+  bool is_user_corrected = 105;
+}
+
+message PrimaryDevice {
+  Meta meta = 1;
+
+  string app_id = 2;
+
+  bool user_action = 3;
+
+  map<string, string> device_info = 4;
+}
+
+message PrivateCategoryAssignment {
+  string name = 1;
+
+  string valid_from_date = 2;
+
+  optional string valid_to_date = 3;
+}
+
+message Reaction {
+  TimestampWithOffset created_at = 1;
+
+  string whom = 2;
+
+  string emoji = 3;
+
+  string one_word = 4;
+}
+
+message SettingsValues {
+  bool daily_email = 1;
+
+  bool disableAI = 2;
+
+  bool timeline_most_recent_first = 3;
+
+  bool disable_scooting_detection = 4;
+
+  bool hide_timeline_details = 5;
+
+  bool store_image_previews = 6;
+
+  bool enable_daily_notification = 7;
+
+  bool disable_pat_responses = 8;
+
+  bool disable_population_comparisons = 10;
+
+  bool disable_automatic_log_inference = 11;
+
+  bool use_tiles_for_trp = 21;
+
+  bool show_photos_on_timeline = 23;
+
+  bool show_media_metadata_overlay = 24;
+
+  DashboardConfiguration dashboard_config = 25;
+
+  google.protobuf.Timestamp asked_for_review = 26;
+
+  bool submit_to_apple_health = 27;
+
+  AppIntroductionState introduction_state = 29;
+
+  bool deduplicate_week_photos = 30;
+
+  string default_transport_method = 31;
+
+  int32 day_end_offset_secs = 32;
+
+  bool disable_automatic_photo_days = 33;
+
+  bool disable_automatic_photo_events = 34;
+
+  string personal_offer_code = 36;
+
+  repeated string invite_codes = 37;
+
+  string grandfathered_subscription = 38;
+
+  bool disable_cycling_detection = 39;
+
+  Meta meta = 42;
+
+  reserved 9, 20, 22, 28, 35;
+
+  reserved "detect_water_travel", "use_particle_filter";
+}
+
+message Sleep {
+  uint32 asleep_secs = 2;
+
+  SleepType type = 3;
+
+  optional string device_name = 10;
+
+  optional string device_manufacturer = 11;
+
+  optional string device_model = 12;
+}
+
+message StatsSelection {
+  repeated string stats = 1;
+}
+
+message Tally {
+  Meta meta = 1;
+
+  string eventID = 2;
+
+  string journalEntryID = 3;
+
+  string source = 4;
+
+  string name = 5;
+
+  string unit = 6;
+
+  float value = 7;
+
+  string who = 8;
+
+  TimestampWithOffset time = 9;
+
+  string category = 10;
+
+  string emoji = 11;
+}
+
+message TallyPattern {
+  string text = 1;
+
+  repeated string tallyIDs = 2;
+}
+
+message TimeRange {
+  TimestampWithOffset start = 1;
+
+  TimestampWithOffset end = 2;
+}
+
+message TimestampWithOffset {
+  google.protobuf.Timestamp UTC_timestamp = 1 [json_name = "utcTimestamp"];
+
+  optional sint32 UTC_offset_seconds = 2 [json_name = "utcOffsetSeconds"];
+}
+
+message Trip {
+  optional string name = 1;
+
+  repeated GeoLocale locales = 2;
+}
+
+message UserLabel {
+  string path = 1;
+
+  float confidence = 2;
+
+  bool set_by_user = 3;
+
+  uint32 duration_secs = 4;
+}
+
+message Weather {
+  Meta meta = 1;
+
+  Location location = 2;
+
+  TimestampWithOffset observed_at = 3;
+
+  string condition_description = 4;
+
+  string symbol_name = 5;
+
+  double temperature_celsius = 6;
+
+  double apparent_temperature_celsius = 7;
+
+  double humidity = 8;
+
+  double pressure_millibars = 9;
+
+  double dew_point_celsius = 10;
+
+  double cloud_cover = 11;
+
+  double visibility_meters = 12;
+
+  double wind_speed_meters_per_sec = 13;
+
+  double wind_direction_degrees = 14;
+
+  int32 uv_index = 15;
+
+  bool is_daylight = 16;
+}
+
+message Workout {
+  uint32 healthkit_activity_type = 2;
+
+  string activity_name = 3;
+
+  uint32 duration_secs = 4;
+
+  string source = 5;
+
+  optional string moloc_activity = 6;
+
+  TimestampWithOffset route_start_time = 7;
+
+  repeated Location route = 8;
+
+  uint32 steps = 9;
+
+  uint32 distance_meters = 10;
+
+  bool indoors = 11;
+
+  repeated TimeRange pauses = 12;
+
+  uint32 kcal = 100;
+
+  optional string healthkit_identifier = 101;
+
+  optional string device_name = 150;
+
+  optional string device_manufacturer = 151;
+
+  optional string device_model = 152;
+}
+
+enum AIProfilePurpose {
+  AIPP_NOT_SPECIFIED = 0;
+
+  ACTIVITY = 1;
+
+  WORK = 2;
+
+  PEOPLE = 3;
+
+  HEALTH_FITNESS = 4;
+
+  ROUTINE = 5;
+}
+
+enum AttendeeRole {
+  ATTENDEE_ROLE_UNSPECIFIED = 0;
+
+  ATTENDEE_ROLE_REQUIRED = 1;
+
+  ATTENDEE_ROLE_OPTIONAL = 2;
+
+  ATTENDEE_ROLE_NON_PARTICIPANT = 3;
+
+  ATTENDEE_ROLE_CHAIR = 4;
+}
+
+enum AttendeeStatus {
+  ATTENDEE_STATUS_UNSPECIFIED = 0;
+
+  ATTENDEE_STATUS_NEEDS_ACTION = 1;
+
+  ATTENDEE_STATUS_ACCEPTED = 2;
+
+  ATTENDEE_STATUS_DECLINED = 3;
+
+  ATTENDEE_STATUS_TENTATIVE = 4;
+
+  ATTENDEE_STATUS_DELEGATED = 5;
+}
+
+enum DashboardSection {
+  FACTOIDS = 0;
+
+  ACTIVITIES = 1;
+
+  TIMESPENT = 2;
+
+  MAPS = 3;
+
+  LOCALESTATS = 4;
+
+  TRIPS = 5;
+
+  TALLIES = 6;
+
+  JOURNAL_STATS = 7;
+
+  PERSONAL_WEATHER = 8;
+
+  KNOWN_PLACES = 9;
+
+  ALTITUDE = 10;
+}
+
+enum EmbeddingType {
+  EMBT_NOT_SPECIFIED = 0;
+
+  JOURNAL_ENTRY = 1;
+
+  EVENT = 2;
+}
+
+enum EventGroupType {
+  OUTING_GROUP = 0;
+
+  TRANSPORT_GROUP = 1;
+
+  AREA_VISIT_GROUP = 2;
+}
+
+enum EventType {
+  ET_NOT_SPECIFIED = 0;
+
+  DATE = 1;
+
+  PLACEVISIT = 2;
+
+  MOVEMENT = 3;
+
+  NO_DATA_PERIOD = 4;
+
+  WORKOUT = 5;
+
+  SLEEP = 6;
+
+  EVENT_GROUP = 7;
+
+  TRIP = 8;
+}
+
+enum IntroductionContent {
+  DAYVIEW = 0;
+
+  BOX_STARTMOVING = 1;
+
+  BOX_VISITAPLACE = 2;
+
+  BOX_NAMEPLACES = 3;
+
+  BOX_ADDPHOTOS = 4;
+
+  CHAT = 5;
+
+  DASHBOARD = 6;
+}
+
+enum PatternType {
+  PT_NOT_SPECIFIED = 0;
+
+  MOVEMENT_ACTIVITY = 1;
+
+  TALLY = 2;
+
+  MANUAL_WORKOUT = 3;
+}
+
+enum Recipient {
+  RT_NOT_SPECIFIED = 0;
+
+  USER = 1;
+
+  PAT = 2;
+}
+
+enum SleepType {
+  ST_NOT_SPECIFIED = 0;
+
+  IN_BED = 1;
+
+  ASLEEP = 2;
+
+  AWAKE = 3;
+
+  CORE = 4;
+
+  DEEP = 5;
+
+  REM = 6;
+}
+
+enum Transport {
+  T_NOT_SPECIFIED = 0;
+
+  EMAIL = 1;
+}
+

@@ -7,3 +7,8 @@ The code has been developed in an AI-driven manner with the Claude Code, see CLA
 We encourage users to "vibe code" their own tools.
 
 Join our Discord channel: https://discord.gg/zwJEYNdsPE
+
+# Using Claude Code
+
+To generate the main code, I used this prompt: "Study CLAUDE.md, and create the discussed scripts in python."
+I think I forgot to add please!
