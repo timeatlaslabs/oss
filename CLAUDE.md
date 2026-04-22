@@ -12,7 +12,13 @@ Generate python protobuffer code for the timeline.proto and store in this reposi
 
 For each type of message in FullDirectory, such as event, media or known place, create its own table which has an primary key id (string) and a data column as blob. Each protobuffer message would be then inserted as-is to the table to id corresponding to message.meta.id.
 
-In addition, study the protobuffer definition and create a column for each timestamp field, and store the unix timestamp in there. For example, meta.created_at of each message, and start_at and end_at of the Event message.
+For each event type, create a own table like events_place_visits, events_movements, and do not create a events table. Store the whole event message, but choose the table based on the event type.
+
+In addition, study the protobuffer definition and create a column for each timestamp field, and store the unix timestamp in there. For example, meta.created_at of each message, and start_at and end_at of the Event message. Have indices for the event start_at and end_at.
+
+For all the tables, create columns for all simple fields of the event submessage, like event.place_visit would have "name", "secondary_name" and "known_place_id". Do not create columns for repeated fields or structure typed fields.
+
+Furthermore, for events, make a column for event_type, which is a string based on the enum name for the event type. This is to make it easier to read.
 
 Messages which have meta.deleted_at should be deleted from the database.
 
