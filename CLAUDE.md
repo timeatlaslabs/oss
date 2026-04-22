@@ -8,13 +8,16 @@ This folder contains a FORMAT.txt and timeline.proto which explain the data mode
 
 Generate python protobuffer code for the timeline.proto and store in this repository.
 
-#2 Initial database creation
+#2 Database schema
 
-Create a script setup.py which creates an SQLite3 database "timeatlas.db" unless it exists. Create a table that contains list of already synchronized prefixes. The prefixes are unix timestamps in second and the files the icloud folder have that prefix. 
+For each type of message in FullDirectory, such as event, media or known place, create its own table which has an primary key id (string) and a data column as blob. Each protobuffer message would be then inserted as-is to the table to id corresponding to message.meta.id.
 
-Then create a sync function which loads the files that are not imported yet. Note that some files are zip files that contain protobufferfiles inside. Open the zip files in-memory (i.e do not extract on the file system).
+In addition, study the protobuffer definition and create a column for each timestamp field, and store the unix timestamp in there. For example, meta.created_at of each message, and start_at and end_at of the Event message.
 
-For each type of message in FullDirectory, such as event, media or known place, create its own table which has an id (string) and a binary data. Each protobuffer message would be then inserted as-is to the table to id corresponding to message.meta.id.
+Messages which have meta.deleted_at should be deleted from the database.
 
+#2 Database sync
 
+Create a script setup.py which creates an SQLite3 database "timeatlas.db" unless it exists, using the schema defined above. Create an additional sync state table that contains list of already synchronized prefixes. The prefixes are unix timestamps in second and the files the icloud folder have that prefix.
 
+Then create a sync function which loads the files that are not imported yet from the icloud folder. Note that some files are zip files that contain protobufferfiles inside. Open the zip files in-memory (i.e do not extract on the file system).
