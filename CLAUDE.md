@@ -65,7 +65,7 @@ For activities, add a "stroke" property with a hex color for different activity 
 Add a flag for the output file, otherwise print in stdout the json.
 
 
-#7 More Tools: Adding notes
+#7 More tools: Adding notes
 
 Add a tool addnote.json which either takes an input file (given with -f or --file) or adds a prompt to enter text (two empty lines finishes a note). With -w open a window to enter a text. 
 
@@ -80,7 +80,13 @@ The date is the current date or user can pass a flag -d to specify date.
 
 The file should be stored with name "note_<timestamp-in-millis>.json" to the icloud directory.
 
+#8 More tools: Weather
 
-#8 Tools to README.md
+Add a tool to query the weather table. Given a date range, print the temperature range and conditions for each date and in the summary write a simple histogram.
+
+If user specifies -v, use matplotlib to plot the weather and open it in a window or store in a file (flag).
+
+
+#9 Tools to README.md
 
 Add instructions on how to use the tools to the README.md by providing examples.

@@ -4,7 +4,7 @@ on your Apple Mac computer. On Windows the folder lives under `%USERPROFILE%\iCl
 
 The code has been developed in an AI-driven manner with the Claude Code, see CLAUDE.md for its instructions.
 
-We encourage users to "vibe code" their own tools.
+We encourage users to "vibe code" their own tools. Please submit pull requests for improvements and cool tools!
 
 Join our Discord channel: https://discord.gg/zwJEYNdsPE
 
@@ -71,7 +71,7 @@ For each known place with the given name, print its address/location and every
 place-visit event tied to it.
 
 ```bash
-python tools/knownplaces.py "Home"
+python tools/knownplaces.py "Starbucks"
 
 # Include any journal entries attached to each place visit.
 python tools/knownplaces.py "Gym" --show-notes
@@ -112,6 +112,32 @@ python tools/addnote.py -w
 
 # Attach the note to a specific date instead of today.
 python tools/addnote.py -d 2026-04-15 -f note.txt
+```
+
+## weather.py
+
+Query the weather table for a date range. For each date prints the temperature
+min/max and top observed conditions, then shows an overall histogram of
+conditions across the range.
+
+```bash
+# Single day.
+python tools/weather.py 2026-04-20
+
+# Date range (inclusive).
+python tools/weather.py 2026-04-01 2026-04-07
+```
+
+With `-v` the tool plots temperature over time using matplotlib — requires
+`pip install matplotlib`. Without `-o` a window is opened; with `-o` the plot
+is saved to the given file (window-less, so it works over SSH too).
+
+```bash
+# Open a plot window.
+python tools/weather.py 2026-04-01 2026-04-07 -v
+
+# Save to a PNG instead.
+python tools/weather.py 2026-04-01 2026-04-07 -v -o april-weather.png
 ```
 
 # Using Claude Code
