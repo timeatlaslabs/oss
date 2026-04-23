@@ -24,13 +24,13 @@ Messages which have meta.deleted_at should be deleted from the database.
 
 #2 Database sync
 
-Create a script setup.py which creates an SQLite3 database "timeatlas.db" unless it exists, using the schema defined above. Create an additional sync state table that contains list of already synchronized prefixes. The prefixes are unix timestamps in second and the files the icloud folder have that prefix.
+Create a script sync.py which creates an SQLite3 database "timeatlas.db" unless it exists, using the schema defined above. Create an additional sync state table that contains list of already synchronized prefixes. The prefixes are unix timestamps in second and the files the icloud folder have that prefix.
 
 Then create a sync function which loads the files that are not imported yet from the icloud folder. Note that some files are zip files that contain protobufferfiles inside. Open the zip files in-memory (i.e do not extract on the file system).
 
 #3 Startup instructions
 
-Modify README.md to have instructions how to run setup.py, including setting up virtual environment and installing dependencies.
+Modify README.md to have instructions how to run sync.py, including setting up virtual environment and installing dependencies.
 
 #4 Python tools
 
@@ -82,7 +82,7 @@ The file should be stored with name "note_<timestamp-in-millis>.json" to the icl
 
 #8 More tools: Weather
 
-Add a tool to query the weather table. Given a date range, print the temperature range and conditions for each date and in the summary write a simple histogram.
+Add a tool tools/weather.py to query the weather table. Given a date range, print the temperature range and conditions for each date and in the summary write a simple histogram.
 
 If user specifies -v, use matplotlib to plot the weather and open it in a window or store in a file (flag).
 

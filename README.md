@@ -32,10 +32,10 @@ py -m venv .venv
 pip install -r requirements.txt
 ```
 
-## 3. Run setup.py to create the database and sync from iCloud
+## 3. Run sync.py to create the database and sync from iCloud
 
 ```bash
-python setup.py
+python sync.py
 ```
 
 This creates `timeatlas.db` in the repository root and imports any Time Atlas files
@@ -44,6 +44,9 @@ that have not been synced yet. Re-run it at any time to pick up new data.
 # Tools
 
 The `tools/` directory contains small scripts that read the synced database.
+
+Note: always run "sync.py" first to sync the data. Consider adding this to an automatically running cronjob
+to ensure your data is always in sync.
 
 ## date_query.py
 
