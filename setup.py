@@ -12,12 +12,12 @@ import sqlite3
 import zipfile
 import io
 
+import timeatlas
 import timeatlas_pb2
 
-ICLOUD_DIR = os.path.expanduser(
-    "~/Library/Mobile Documents/iCloud~com~timeatlaslabs~Pat/Documents"
-)
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "timeatlas.db")
+
+ICLOUD_DIR = timeatlas.getIcloudDir()
+DB_PATH = timeatlas.getDatabasePath()
 
 
 # ---------------------------------------------------------------------------
