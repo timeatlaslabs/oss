@@ -98,6 +98,15 @@ python tools/geojson.py 2026-04-01 2026-04-07
 
 # Write a whole week to a file (loadable in https://geojson.io).
 python tools/geojson.py 2026-04-01 2026-04-07 -o april.geojson
+
+# Filter by activity (short code). Place visits are excluded.
+python tools/geojson.py 2025-01-15 --activity ski
+
+# Filter by activity (full name) and write to a file.
+python tools/geojson.py 2025-01-10 2025-01-20 --activity cycling -o rides.geojson
+
+# Filter walks for a single day.
+python tools/geojson.py 2025-03-01 --activity wlk
 ```
 
 ## addnote.py

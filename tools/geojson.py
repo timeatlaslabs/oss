@@ -28,6 +28,61 @@ def _load_activity_colors() -> dict[str, str]:
 
 ACTIVITY_COLORS = _load_activity_colors()
 
+# Short activity codes mapped to full display names (mirrors date_query.py).
+ACTIVITY_NAMES = {
+    "wlk": "walk",
+    "run": "run",
+    "cyc": "bicycle",
+    "stu": "stairs up",
+    "std": "stairs down",
+    "sta": "stationary",
+    "bus": "bus",
+    "car": "car",
+    "mtc": "motorcycle",
+    "ski": "cross-country ski",
+    "mtr": "metro",
+    "sub": "subway",
+    "trm": "tram",
+    "trn": "train",
+    "boa": "boating",
+    "sct": "scooting",
+    "trp": "transport",
+    "non": "none",
+    "mcy": "maybe cycling",
+    "ndt": "undetermined",
+    "air": "airplane",
+    "dhs": "downhill skiing",
+    "sbd": "snowboarding",
+    "rol": "rollerskating",
+    "hoo": "hoops",
+    "row": "rowing",
+    "slb": "sailing",
+    "pdl": "paddling",
+    "aeb": "assisted e-bike",
+    "swm": "swimming",
+    "pub": "public transport",
+}
+
+# Reverse map: lowercase full name -> short code
+_FULL_NAME_TO_CODE = {v: k for k, v in ACTIVITY_NAMES.items()}
+
+
+def _resolve_activity_filter(value: str) -> str:
+    """Return the short activity code for *value* (short code or full name)."""
+    low = value.lower()
+    # Direct short code match
+    if low in ACTIVITY_NAMES:
+        return low
+    # Full name match
+    if low in _FULL_NAME_TO_CODE:
+        return _FULL_NAME_TO_CODE[low]
+    # Substring / partial match (e.g. "cycling" matches "maybe cycling" / "bicycle")
+    for full, code in _FULL_NAME_TO_CODE.items():
+        if low in full or full in low:
+            return code
+    # Fall through – return as-is so filtering still works if the proto has it
+    return low
+
 
 def _stroke_for(activity_code: str) -> str | None:
     if activity_code and activity_code in ACTIVITY_COLORS:
@@ -74,11 +129,13 @@ def _place_visit_feature(evt) -> dict | None:
     }
 
 
-def _movement_features(evt) -> list[dict]:
+def _movement_features(evt, activity_code: str | None = None) -> list[dict]:
     features = []
     event_start = _iso(evt.start_at) if evt.HasField("start_at") else None
     for a in evt.movement.move_activities:
         if len(a.trajectory) < 2:
+            continue
+        if activity_code and a.activity != activity_code:
             continue
         coords = [[p.lon, p.lat] for p in a.trajectory]
         start_iso = _iso(a.start_at) if a.HasField("start_at") else event_start
@@ -107,18 +164,22 @@ def _movement_features(evt) -> list[dict]:
     return features
 
 
-def build_geojson(from_date: str, to_date: str) -> dict:
+def build_geojson(from_date: str, to_date: str, activity_filter: str | None = None) -> dict:
     start, end = _resolve_range(from_date, to_date)
     if start is None or end is None:
         return {"type": "FeatureCollection", "features": []}
 
+    activity_code = _resolve_activity_filter(activity_filter) if activity_filter else None
+
     features = []
-    for evt in timeatlas.getEvents("placevisit", start, end):
-        f = _place_visit_feature(evt)
-        if f is not None:
-            features.append(f)
+    # When filtering by activity, do not include place visits.
+    if not activity_code:
+        for evt in timeatlas.getEvents("placevisit", start, end):
+            f = _place_visit_feature(evt)
+            if f is not None:
+                features.append(f)
     for evt in timeatlas.getEvents("movement", start, end):
-        features.extend(_movement_features(evt))
+        features.extend(_movement_features(evt, activity_code))
 
     return {"type": "FeatureCollection", "features": features}
 
@@ -136,10 +197,14 @@ def main():
     parser.add_argument(
         "-o", "--output", help="Write GeoJSON to this file instead of stdout."
     )
+    parser.add_argument(
+        "--activity",
+        help="Filter movements by activity type (short code like 'ski' or full name like 'cycling'). Place visits are excluded when filtering.",
+    )
     args = parser.parse_args()
 
     to_date = args.to_date or args.from_date
-    geojson = build_geojson(args.from_date, to_date)
+    geojson = build_geojson(args.from_date, to_date, activity_filter=args.activity)
     text = json.dumps(geojson, indent=2)
 
     if args.output:
