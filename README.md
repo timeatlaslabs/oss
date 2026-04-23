@@ -1,7 +1,9 @@
 This repository contains open source tools to access data from the Time Atlas app.
-Time Atlas stores its data for syncing in iCloud, see Library/Mobile Documents/iCloud~com~timeatlaslabs~Pat/Documents/
-on your Apple Mac computer. On Windows the folder lives under `%USERPROFILE%\iCloudDrive\iCloud~com~timeatlaslabs~Pat\Documents`.
 
+# Accessing data of the Time Atlas app
+Time Atlas stores its data for syncing in iCloud, see `Library/Mobile Documents/iCloud~com~timeatlaslabs~Pat/Documents/` on your Apple Mac computer. On Windows the folder lives under `%USERPROFILE%\iCloudDrive\iCloud~com~timeatlaslabs~Pat\Documents`.
+
+# About the Code
 The code has been developed in an AI-driven manner with the Claude Code, see CLAUDE.md for its instructions.
 
 We encourage users to "vibe code" their own tools. Please submit pull requests for improvements and cool tools!
