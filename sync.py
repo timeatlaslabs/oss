@@ -7,6 +7,7 @@ Each event type gets its own table (events_place_visits, events_movements, etc.)
 with columns for all scalar sub-message fields.
 """
 
+import argparse
 import os
 import sqlite3
 import zipfile
@@ -108,6 +109,12 @@ NON_EVENT_TABLE_DEFS = [
             ("is_dictated", "is_dictated", "INTEGER", "bool"),
             ("is_ai_rewritten", "is_ai_rewritten", "INTEGER", "bool"),
         ],
+        "m2m_cols": [
+            ("journal_entry_media_ids", "journal_entry_id", "media_id", "mediaIDs"),
+            ("journal_entry_tags", "journal_entry_id", "tag", "tags"),
+            ("journal_entry_people", "journal_entry_id", "person", "people"),
+            ("journal_entry_activities", "journal_entry_id", "activity", "activities"),
+        ],
     },
     {
         "table": "known_places",
@@ -121,6 +128,10 @@ NON_EVENT_TABLE_DEFS = [
             ("address", "address", "TEXT", "text"),
             ("region", "region", "TEXT", "text"),
             ("external_id", "externalID", "TEXT", "text"),
+        ],
+        "m2m_cols": [
+            ("known_place_categories", "known_place_id", "category", "categories"),
+            ("known_place_wifi_ids", "known_place_id", "wifi_id", "wifiIDs"),
         ],
     },
     {
@@ -424,6 +435,13 @@ EVENT_TYPE_DEFS = {
 
 ALL_EVENT_TABLES = [d["table"] for d in EVENT_TYPE_DEFS.values()]
 
+# Many-to-many definitions for Event repeated string fields
+# (m2m_table, parent_id_col, value_col, proto_field_name)
+EVENT_M2M_DEFS = [
+    ("event_media_ids", "event_id", "media_id", "mediaIDs"),
+    ("event_hidden_from_feed_dates", "event_id", "date", "hidden_from_feed_dates"),
+]
+
 
 # ---------------------------------------------------------------------------
 # Table creation
@@ -456,6 +474,33 @@ def create_tables(conn: sqlite3.Connection):
         cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{table}_start_at ON {table} (start_at)")
         cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{table}_end_at ON {table} (end_at)")
 
+    # Many-to-many tables for non-event tables
+    for tdef in NON_EVENT_TABLE_DEFS:
+        for m2m_table, parent_col, value_col, _ in tdef.get("m2m_cols", []):
+            cur.execute(
+                f"CREATE TABLE IF NOT EXISTS {m2m_table} ("
+                f"  {parent_col} TEXT NOT NULL,"
+                f"  {value_col} TEXT NOT NULL"
+                f")"
+            )
+            cur.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_{m2m_table}_{parent_col} "
+                f"ON {m2m_table} ({parent_col})"
+            )
+
+    # Many-to-many tables for events
+    for m2m_table, parent_col, value_col, _ in EVENT_M2M_DEFS:
+        cur.execute(
+            f"CREATE TABLE IF NOT EXISTS {m2m_table} ("
+            f"  {parent_col} TEXT NOT NULL,"
+            f"  {value_col} TEXT NOT NULL"
+            f")"
+        )
+        cur.execute(
+            f"CREATE INDEX IF NOT EXISTS idx_{m2m_table}_{parent_col} "
+            f"ON {m2m_table} ({parent_col})"
+        )
+
     # Sync state
     cur.execute(
         "CREATE TABLE IF NOT EXISTS sync_state ("
@@ -481,6 +526,8 @@ def _process_non_event_list(conn: sqlite3.Connection, tdef: dict,
     scalar_cols = tdef["scalar_cols"]
     cur = conn.cursor()
 
+    m2m_cols = tdef.get("m2m_cols", [])
+
     for msg in messages:
         msg_id, created, updated, is_deleted = _meta_info(msg)
         if msg_id is None:
@@ -488,6 +535,8 @@ def _process_non_event_list(conn: sqlite3.Connection, tdef: dict,
 
         if is_deleted:
             cur.execute(f"DELETE FROM {table_name} WHERE id = ?", (msg_id,))
+            for m2m_table, parent_col, _, _ in m2m_cols:
+                cur.execute(f"DELETE FROM {m2m_table} WHERE {parent_col} = ?", (msg_id,))
             continue
 
         data = msg.SerializeToString()
@@ -508,6 +557,16 @@ def _process_non_event_list(conn: sqlite3.Connection, tdef: dict,
             f"ON CONFLICT(id) DO UPDATE SET {update_set}"
         )
         cur.execute(sql, all_vals)
+
+        # Many-to-many tables
+        for m2m_table, parent_col, value_col, proto_field in m2m_cols:
+            cur.execute(f"DELETE FROM {m2m_table} WHERE {parent_col} = ?", (msg_id,))
+            values = getattr(msg, proto_field)
+            if values:
+                cur.executemany(
+                    f"INSERT INTO {m2m_table} ({parent_col}, {value_col}) VALUES (?, ?)",
+                    [(msg_id, v) for v in values],
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -536,6 +595,8 @@ def _process_events(conn: sqlite3.Connection, directory: timeatlas_pb2.FullDirec
 
         if is_deleted:
             cur.execute(f"DELETE FROM {table} WHERE id = ?", (msg_id,))
+            for m2m_table, parent_col, _, _ in EVENT_M2M_DEFS:
+                cur.execute(f"DELETE FROM {m2m_table} WHERE {parent_col} = ?", (msg_id,))
             continue
 
         # Common values
@@ -572,6 +633,16 @@ def _process_events(conn: sqlite3.Connection, directory: timeatlas_pb2.FullDirec
             f"ON CONFLICT(id) DO UPDATE SET {update_set}"
         )
         cur.execute(sql, all_vals)
+
+        # Many-to-many tables
+        for m2m_table, parent_col, value_col, proto_field in EVENT_M2M_DEFS:
+            cur.execute(f"DELETE FROM {m2m_table} WHERE {parent_col} = ?", (msg_id,))
+            values = getattr(event, proto_field)
+            if values:
+                cur.executemany(
+                    f"INSERT INTO {m2m_table} ({parent_col}, {value_col}) VALUES (?, ?)",
+                    [(msg_id, v) for v in values],
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -666,6 +737,15 @@ def sync(conn: sqlite3.Connection, icloud_dir: str = ICLOUD_DIR):
 # ---------------------------------------------------------------------------
 
 def main():
+    parser = argparse.ArgumentParser(description="Sync Time Atlas data to SQLite")
+    parser.add_argument("--reset", action="store_true",
+                        help="Delete the database and re-sync from scratch")
+    args = parser.parse_args()
+
+    if args.reset and os.path.exists(DB_PATH):
+        os.remove(DB_PATH)
+        print(f"Removed {DB_PATH}")
+
     print(f"Database: {DB_PATH}")
     conn = sqlite3.connect(DB_PATH)
     create_tables(conn)

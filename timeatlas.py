@@ -163,6 +163,33 @@ def getJournalEntriesForEvent(event_id: str) -> list[timeatlas_pb2.JournalEntry]
     return out
 
 
+def getMediaForJournalEntry(entry_id: str) -> list[timeatlas_pb2.Media]:
+    """Return all Media objects linked to the given journal entry."""
+    if not entry_id:
+        return []
+    with _connect() as conn:
+        cur = conn.execute(
+            "SELECT media_id FROM journal_entry_media_ids WHERE journal_entry_id = ?",
+            (entry_id,),
+        )
+        media_ids = [row[0] for row in cur.fetchall()]
+    if not media_ids:
+        return []
+    placeholders = ",".join("?" * len(media_ids))
+    with _connect() as conn:
+        cur = conn.execute(
+            f"SELECT data FROM media WHERE id IN ({placeholders})",
+            media_ids,
+        )
+        rows = cur.fetchall()
+    out = []
+    for (data,) in rows:
+        m = timeatlas_pb2.Media()
+        m.ParseFromString(data)
+        out.append(m)
+    return out
+
+
 def getKnownPlace(
     id: str | None = None, name: str | None = None
 ):
