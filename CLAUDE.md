@@ -18,6 +18,8 @@ In addition, study the protobuffer definition and create a column for each times
 
 For all the tables, create columns for all simple fields of the event submessage, like event.place_visit would have "name", "secondary_name" and "known_place_id". Do not create columns for repeated fields or structure typed fields.
 
+For the repeated fields, create many-to-many tables. For example, journal entry has mediaIDs, so create journal_entry_media_ids table with journal_entry_id and media_id as columns. For journal entry tags, or people, do the same. (Ignore the local photo ids, as it is a deprecated field).
+
 Furthermore, for events, make a column for event_type, which is a string based on the enum name for the event type. This is to make it easier to read.
 
 Messages which have meta.deleted_at should be deleted from the database.
