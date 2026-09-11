@@ -222,3 +222,76 @@ def getKnownPlace(
                 kp.ParseFromString(data)
                 out.append(kp)
             return out
+
+
+def _to_date_str(value) -> str:
+    """Accept a datetime/date or a 'YYYY-mm-dd' string and return 'YYYY-mm-dd'."""
+    if isinstance(value, str):
+        return value[:10]
+    return value.strftime("%Y-%m-%d")
+
+
+def getBooks(from_dt, to_dt) -> list[timeatlas_pb2.Book]:
+    """Return Books whose read_date falls within [from, to].
+
+    Books only carry a read_date ('YYYY-mm-dd' string), so the range is
+    compared on calendar dates. Sorted by read_date ascending.
+    """
+    from_date = _to_date_str(from_dt)
+    to_date = _to_date_str(to_dt)
+    with _connect() as conn:
+        cur = conn.execute(
+            "SELECT data FROM books "
+            "WHERE read_date IS NOT NULL AND read_date >= ? AND read_date <= ? "
+            "ORDER BY read_date ASC, title ASC",
+            (from_date, to_date),
+        )
+        rows = cur.fetchall()
+    out = []
+    for (data,) in rows:
+        b = timeatlas_pb2.Book()
+        b.ParseFromString(data)
+        out.append(b)
+    return out
+
+
+def getMoviesAndTv(from_dt: datetime, to_dt: datetime) -> list[timeatlas_pb2.MovieAndTv]:
+    """Return MovieAndTv entries watched within [from_dt, to_dt].
+
+    Sorted by watched_at ascending.
+    """
+    with _connect() as conn:
+        cur = conn.execute(
+            "SELECT data FROM movies_and_tv "
+            "WHERE watched_at IS NOT NULL AND watched_at >= ? AND watched_at <= ? "
+            "ORDER BY watched_at ASC",
+            (from_dt.timestamp(), to_dt.timestamp()),
+        )
+        rows = cur.fetchall()
+    out = []
+    for (data,) in rows:
+        m = timeatlas_pb2.MovieAndTv()
+        m.ParseFromString(data)
+        out.append(m)
+    return out
+
+
+def getLastFmTracks(from_dt: datetime, to_dt: datetime) -> list[timeatlas_pb2.LastFmTrack]:
+    """Return Last.fm tracks played within [from_dt, to_dt].
+
+    Sorted by played_at ascending.
+    """
+    with _connect() as conn:
+        cur = conn.execute(
+            "SELECT data FROM lastfm_tracks "
+            "WHERE played_at IS NOT NULL AND played_at >= ? AND played_at <= ? "
+            "ORDER BY played_at ASC",
+            (from_dt.timestamp(), to_dt.timestamp()),
+        )
+        rows = cur.fetchall()
+    out = []
+    for (data,) in rows:
+        t = timeatlas_pb2.LastFmTrack()
+        t.ParseFromString(data)
+        out.append(t)
+    return out
