@@ -24,45 +24,6 @@ EVENT_TYPES_TO_SHOW = [
 ]
 
 
-# Short activity codes (from MoveActivity.activity) mapped to display names.
-ACTIVITY_NAMES = {
-      "aeb": "E-Biking",
-      "air": "Airplane",
-      "boa": "Boat",
-      "bsw": "Beach walking",
-      "bus": "Bus",
-      "car": "Car",
-      "cyc": "Cycling",
-      "dhs": "Downhill skiing",
-      "dsw": "Dog and stroller walk",
-      "dwk": "Dog-walking",
-      "hke": "Hiking",
-      "ice": "Ice skating",
-      "mtc": "Motorcycle",
-      "pdl": "Paddling",
-      "pub": "Public Transport",
-      "rbd": "Rollerblading",
-      "run": "Running",
-      "sct": "Scooting",
-      "ski": "Cross-country skiing",
-      "slb": "Sailing",
-      "snb": "Snowboarding",
-      "sub": "Subway",
-      "swk": "Stroller walk",
-      "swm": "Swimming",
-      "tax": "Taxi",
-      "trm": "Tram",
-      "trn": "Train",
-      "trp": "Transport",
-      "tsw": "Twin-stroller walk",
-      "wlk": "Walking",
-}
-
-
-def _activity_name(code: str) -> str:
-    return ACTIVITY_NAMES.get(code, code)
-
-
 def _fmt_time(dt) -> str:
     return dt.strftime("%H:%M") if dt else "--:--"
 
@@ -140,7 +101,7 @@ def _print_movement_details(evt, indent: str = "    "):
     for a in mv.move_activities:
         if not a.activity:
             continue
-        parts = [_activity_name(a.activity)]
+        parts = [timeatlas.getActivityName(a.activity)]
         if a.distance_meters:
             parts.append(_fmt_distance(a.distance_meters))
         if a.steps:
@@ -319,7 +280,7 @@ def _print_date(date_str, start, end, show_notes: bool, show_summary: bool):
                     parts.append(_fmt_hm(daily_duration_by_activity[act]))
                 if daily_steps_by_activity.get(act):
                     parts.append(f"{daily_steps_by_activity[act]} steps")
-                summary_lines.append(f"  {_activity_name(act)}: {', '.join(parts)}")
+                summary_lines.append(f"  {timeatlas.getActivityName(act)}: {', '.join(parts)}")
 
         if summary_lines:
             print("  --")

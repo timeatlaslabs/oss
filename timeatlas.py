@@ -41,6 +41,69 @@ _EVENT_TYPE_TABLES = {
 }
 
 
+# Short activity codes (MoveActivity.activity) mapped to display names.
+# Shared by the tools so they all speak the same activity vocabulary;
+# the codes match the keys in data/activity_colors.json.
+ACTIVITY_NAMES = {
+    "aeb": "E-Biking",
+    "air": "Airplane",
+    "boa": "Boat",
+    "bsw": "Beach walking",
+    "bus": "Bus",
+    "car": "Car",
+    "cyc": "Cycling",
+    "dhs": "Downhill skiing",
+    "dsw": "Dog and stroller walk",
+    "dwk": "Dog-walking",
+    "hke": "Hiking",
+    "ice": "Ice skating",
+    "mtc": "Motorcycle",
+    "pdl": "Paddling",
+    "pub": "Public Transport",
+    "rbd": "Rollerblading",
+    "run": "Running",
+    "sct": "Scooting",
+    "ski": "Cross-country skiing",
+    "slb": "Sailing",
+    "sbd": "Snowboarding",
+    "sub": "Subway",
+    "swk": "Stroller walk",
+    "swm": "Swimming",
+    "tax": "Taxi",
+    "trm": "Tram",
+    "trn": "Train",
+    "trp": "Transport",
+    "tsw": "Twin-stroller walk",
+    "wlk": "Walking",
+}
+
+# Reverse map: lowercased display name -> short code.
+_ACTIVITY_NAME_TO_CODE = {name.lower(): code for code, name in ACTIVITY_NAMES.items()}
+
+
+def getActivityName(code: str) -> str:
+    """Return the display name for a short activity code (code itself if unknown)."""
+    return ACTIVITY_NAMES.get(code, code)
+
+
+def resolveActivityCode(value: str) -> str:
+    """Return the short activity code for *value*, a short code or a display name.
+
+    Matching is case-insensitive and falls back to a substring match (so
+    "cycling" resolves to "cyc"). Unrecognised values are returned lowercased,
+    so filtering still works for codes not listed in ACTIVITY_NAMES.
+    """
+    low = value.lower()
+    if low in ACTIVITY_NAMES:
+        return low
+    if low in _ACTIVITY_NAME_TO_CODE:
+        return _ACTIVITY_NAME_TO_CODE[low]
+    for name, code in _ACTIVITY_NAME_TO_CODE.items():
+        if low in name or name in low:
+            return code
+    return low
+
+
 def getDatabasePath() -> str:
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), _DB_FILENAME)
 
