@@ -54,7 +54,9 @@ to ensure your data is always in sync.
 
 List events for a date or a range of dates, grouped by date. Sleeps are summarised
 at the bottom of each day instead of listed inline; movement events include per-
-activity distances and non-zero step counts.
+activity distances and non-zero step counts. Books finished, movies/TV watched and
+Last.fm tracks played on the day are listed too (with `--show-notes` book and
+movie reviews are shown as well).
 
 ```bash
 # Single day.

@@ -31,6 +31,12 @@ message FullDirectory {
 
   repeated PrimaryDevice primary_devices = 15;
 
+  repeated LastFmTrack lastfm_tracks = 16;
+
+  repeated Book books = 17;
+
+  repeated MovieAndTv movies_and_tv = 18;
+
   reserved 7;
 }
 
@@ -84,16 +90,56 @@ message BentoSelection {
 
     bool map = 11;
 
-    StatsSelection stats = 12;
+    StatsSelection stats_legacy = 12;
 
     string spotlight = 13;
 
-    AggregatedWeather weather = 14;
+    AggregatedWeather weather_legacy = 14;
+
+    bool weather = 15;
+
+    bool stats = 16;
+
+    bool placeholder = 100;
   }
 }
 
 message BentoSelections {
   map<int32, BentoSelection> selections = 1;
+
+  bool stack_flip = 2;
+
+  optional Orientation primary_orientation = 3;
+
+  StatsSelection stats = 4;
+
+  Weather selected_weather = 5;
+}
+
+message Book {
+  Meta meta = 1;
+
+  string title = 2;
+
+  repeated string authors = 3;
+
+  string isbn = 4;
+
+  string isbn13 = 5;
+
+  int32 number_of_pages = 6;
+
+  int32 publication_year = 7;
+
+  int32 original_publication_year = 8;
+
+  string read_date = 9;
+
+  string my_review = 10;
+
+  double stars = 11;
+
+  string source = 13;
 }
 
 message CalendarEvent {
@@ -189,6 +235,16 @@ message DateEvent {
 
   optional ExternalData external_data = 11;
 
+  optional string name = 12;
+
+  optional string national_holiday_name = 13;
+
+  optional string week_name = 14;
+
+  optional string ai_daily_greeting = 300;
+
+  repeated string ai_daily_greeting_feedback = 301;
+
   reserved 4, 10;
 }
 
@@ -243,9 +299,15 @@ message Event {
 
   repeated string hidden_from_feed_dates = 109;
 
+  repeated string shown_on_feed_dates = 110;
+
   repeated string mediaIDs = 200 [json_name = "mediaIds"];
 
   map<string, ListOfStrings> date_to_media_ids = 202;
+
+  repeated string automaticMediaIDs = 203 [json_name = "automaticMediaIDS"];
+
+  repeated string filteredAllMediaIDs = 204;
 
   reserved 7, 10, 201;
 }
@@ -274,6 +336,8 @@ message GeoLocale {
   string city_or_county = 2;
 
   string region = 3;
+
+  Location location = 4;
 }
 
 message ImageClassification {
@@ -321,6 +385,10 @@ message JournalEntry {
 
   bool is_ai_rewritten = 9;
 
+  TimestampWithOffset imported_writing_time = 10;
+
+  bool indexed_to_spotlight = 11;
+
   repeated string activities = 100;
 
   repeated string mediaIDs = 101 [json_name = "mediaIds"];
@@ -351,6 +419,8 @@ message KnownPlace {
 
   optional string region = 11;
 
+  bool indexed_to_spotlight = 12;
+
   optional TimestampWithOffset valid_from = 100;
 
   optional TimestampWithOffset valid_to = 101;
@@ -358,6 +428,26 @@ message KnownPlace {
   optional string externalID = 102 [json_name = "externalId"];
 
   reserved 4;
+}
+
+message LastFmTrack {
+  Meta meta = 1;
+
+  string name = 2;
+
+  string artist = 3;
+
+  optional string album = 4;
+
+  optional string artist_mbid = 5;
+
+  optional string url = 6;
+
+  optional google.protobuf.Timestamp played_at = 7;
+
+  bool now_playing = 8;
+
+  bool favorited = 9;
 }
 
 message ListOfStrings {
@@ -382,6 +472,8 @@ message Location {
   optional double radius = 101;
 
   optional string airport_code = 102;
+
+  optional string name = 103;
 }
 
 message ManualWorkoutPattern {
@@ -412,6 +504,8 @@ message Media {
   optional google.protobuf.Timestamp modified_timestamp = 9;
 
   bool imported = 10;
+
+  optional bool likely_dsr = 15;
 
   optional string ai_summary = 100;
 
@@ -455,6 +549,8 @@ message MoveActivity {
 
   bool synced_samples_to_apple_health = 12;
 
+  bool processed_user_correction = 13;
+
   reserved 11;
 }
 
@@ -474,6 +570,34 @@ message Movement {
 
 message MovementActivityPattern {
   string eventID = 1;
+}
+
+message MovieAndTv {
+  Meta meta = 1;
+
+  string title = 2;
+
+  int32 year = 3;
+
+  string episode_number = 4;
+
+  string season = 5;
+
+  string imdbId = 6;
+
+  string tmdbId = 7;
+
+  optional google.protobuf.Timestamp watched_at = 8;
+
+  string type = 9;
+
+  string review = 10;
+
+  double stars = 11;
+
+  string url = 12;
+
+  string source = 13;
 }
 
 message NoDataPeriod {
@@ -496,6 +620,18 @@ message Organizer {
   optional string name = 1;
 
   string email = 2;
+}
+
+message PatConfiguration {
+  bool disable_greeting = 1;
+
+  bool allow_image_analysis = 2;
+
+  string writing_style = 5;
+
+  string topics = 6;
+
+  reserved 3, 4;
 }
 
 message PatMessage {
@@ -556,6 +692,8 @@ message PlaceVisit {
   map<string, uint32> wifi_durations = 13;
 
   TimestampWithOffset viewed_time = 14;
+
+  bool visit_monitoring = 15;
 
   optional string known_placeID = 100 [json_name = "knownPlaceId"];
 
@@ -641,17 +779,29 @@ message SettingsValues {
 
   bool disable_automatic_photo_events = 34;
 
-  string personal_offer_code = 36;
-
-  repeated string invite_codes = 37;
-
   string grandfathered_subscription = 38;
 
   bool disable_cycling_detection = 39;
 
+  PatConfiguration pat_configuration = 40;
+
+  map<string, string> experiments = 41;
+
   Meta meta = 42;
 
-  reserved 9, 20, 22, 28, 35;
+  map<string, string> consumed_context_triggers_date = 43;
+
+  bool indexed_to_spotlight = 46;
+
+  string redeemed_referral_code = 50;
+
+  bool sent_referral_commitment = 51;
+
+  string my_referral_code = 52;
+
+  map<int32, int64> tenure_offers_presented = 53;
+
+  reserved 9, 20, 22, 28, 35, 36, 37, 44, 45, 47, 48, 49;
 
   reserved "detect_water_travel", "use_particle_filter";
 }
@@ -714,10 +864,74 @@ message TimestampWithOffset {
   optional sint32 UTC_offset_seconds = 2 [json_name = "utcOffsetSeconds"];
 }
 
+message TopListItem {
+  string eventID = 1;
+
+  string name = 2;
+
+  string description = 3;
+}
+
 message Trip {
   optional string name = 1;
 
   repeated GeoLocale locales = 2;
+
+  optional TripSelections selections = 3;
+
+  optional string web_share_id = 10;
+
+  optional string web_share_url = 11;
+
+  optional string web_share_expiry_date = 12;
+}
+
+message TripPublishOptions {
+  repeated string selected_media_ids = 1;
+
+  bool exclude_days = 3;
+
+  bool exclude_maps = 4;
+
+  bool exclude_charts = 5;
+
+  bool exclude_highlights = 6;
+
+  string ai_rewrite_prompt = 7;
+
+  string ai_rewritten_html = 8;
+
+  bool include_diary = 9;
+
+  map<string, HighlightInclusionMode> highlight_selections = 10;
+
+  bool disable_expiry = 11;
+
+  bool exclude_top_list = 12;
+
+  bool include_weather_charts = 13;
+
+  reserved 2;
+}
+
+message TripSelections {
+  string headline_photo_media_id = 1;
+
+  repeated string selected_journal_entries = 2;
+
+  repeated string activity_charts = 3;
+
+  optional TripPublishOptions publish_options = 4;
+
+  repeated TopListItem top_list = 5;
+
+  bool hidden = 6;
+
+  repeated TripViewSection enabled_sections = 7;
+
+  repeated string selected_media_ids = 9;
+
+  reserved 8;
 }
 
 message UserLabel {
@@ -898,6 +1112,14 @@ enum EventType {
   TRIP = 8;
 }
 
+enum HighlightInclusionMode {
+  HIGHLIGHT_INCLUDE = 0;
+
+  HIGHLIGHT_NO_DESCRIPTION = 1;
+
+  HIGHLIGHT_EXCLUDE = 2;
+}
+
 enum IntroductionContent {
   DAYVIEW = 0;
 
@@ -912,6 +1134,22 @@ enum IntroductionContent {
   CHAT = 5;
 
   DASHBOARD = 6;
+
+  BENTO_CUSTOM = 7;
+
+  LIGHT_MODE = 8;
+
+  TRIP_VIEW = 9;
+
+  INVITE = 12;
+}
+
+enum Orientation {
+  ORIENT_NOT_SET = 0;
+
+  HORIZONTAL = 1;
+
+  VERTICAL = 2;
 }
 
 enum PatternType {
@@ -952,5 +1190,31 @@ enum Transport {
   T_NOT_SPECIFIED = 0;
 
   EMAIL = 1;
+}
+
+enum TripViewSection {
+  TRIPVIEW_NOTSPECIFIED = 0;
+
+  TRIPVIEW_HEADLINEPHOTO = 1;
+
+  TRIPVIEW_DESCRIPTION = 2;
+
+  TRIPVIEW_DAYS = 3;
+
+  TRIPVIEW_TOPLIST = 4;
+
+  TRIPVIEW_HIGHLIGHTS = 5;
+
+  TRIPVIEW_PHOTOS = 6;
+
+  TRIPVIEW_WEATHER = 7;
+
+  TRIPVIEW_MAPS = 8;
+
+  TRIPVIEW_TOTALS = 9;
+
+  TRIPVIEW_CHARTS = 10;
+
+  TRIPVIEW_DIARY = 11;
 }
 

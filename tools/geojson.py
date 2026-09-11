@@ -28,61 +28,6 @@ def _load_activity_colors() -> dict[str, str]:
 
 ACTIVITY_COLORS = _load_activity_colors()
 
-# Short activity codes mapped to full display names (mirrors date_query.py).
-ACTIVITY_NAMES = {
-    "wlk": "walk",
-    "run": "run",
-    "cyc": "bicycle",
-    "stu": "stairs up",
-    "std": "stairs down",
-    "sta": "stationary",
-    "bus": "bus",
-    "car": "car",
-    "mtc": "motorcycle",
-    "ski": "cross-country ski",
-    "mtr": "metro",
-    "sub": "subway",
-    "trm": "tram",
-    "trn": "train",
-    "boa": "boating",
-    "sct": "scooting",
-    "trp": "transport",
-    "non": "none",
-    "mcy": "maybe cycling",
-    "ndt": "undetermined",
-    "air": "airplane",
-    "dhs": "downhill skiing",
-    "sbd": "snowboarding",
-    "rol": "rollerskating",
-    "hoo": "hoops",
-    "row": "rowing",
-    "slb": "sailing",
-    "pdl": "paddling",
-    "aeb": "assisted e-bike",
-    "swm": "swimming",
-    "pub": "public transport",
-}
-
-# Reverse map: lowercase full name -> short code
-_FULL_NAME_TO_CODE = {v: k for k, v in ACTIVITY_NAMES.items()}
-
-
-def _resolve_activity_filter(value: str) -> str:
-    """Return the short activity code for *value* (short code or full name)."""
-    low = value.lower()
-    # Direct short code match
-    if low in ACTIVITY_NAMES:
-        return low
-    # Full name match
-    if low in _FULL_NAME_TO_CODE:
-        return _FULL_NAME_TO_CODE[low]
-    # Substring / partial match (e.g. "cycling" matches "maybe cycling" / "bicycle")
-    for full, code in _FULL_NAME_TO_CODE.items():
-        if low in full or full in low:
-            return code
-    # Fall through – return as-is so filtering still works if the proto has it
-    return low
-
 
 def _stroke_for(activity_code: str) -> str | None:
     if activity_code and activity_code in ACTIVITY_COLORS:
@@ -169,7 +114,7 @@ def build_geojson(from_date: str, to_date: str, activity_filter: str | None = No
     if start is None or end is None:
         return {"type": "FeatureCollection", "features": []}
 
-    activity_code = _resolve_activity_filter(activity_filter) if activity_filter else None
+    activity_code = timeatlas.resolveActivityCode(activity_filter) if activity_filter else None
 
     features = []
     # When filtering by activity, do not include place visits.

@@ -300,9 +300,70 @@ NON_EVENT_TABLE_DEFS = [
             ("day_end_offset_secs", "day_end_offset_secs", "INTEGER", "int"),
             ("disable_automatic_photo_days", "disable_automatic_photo_days", "INTEGER", "bool"),
             ("disable_automatic_photo_events", "disable_automatic_photo_events", "INTEGER", "bool"),
-            ("personal_offer_code", "personal_offer_code", "TEXT", "text"),
             ("grandfathered_subscription", "grandfathered_subscription", "TEXT", "text"),
             ("disable_cycling_detection", "disable_cycling_detection", "INTEGER", "bool"),
+        ],
+    },
+    {
+        "table": "lastfm_tracks",
+        "field": "lastfm_tracks",
+        "ts_cols": ["played_at"],
+        "ts_extractor": lambda m: [
+            _ts_to_unix(m.played_at) if m.HasField("played_at") else None,
+        ],
+        "indexed_cols": ["played_at"],
+        "scalar_cols": [
+            ("name", "name", "TEXT", "text"),
+            ("artist", "artist", "TEXT", "text"),
+            ("album", "album", "TEXT", "text"),
+            ("artist_mbid", "artist_mbid", "TEXT", "text"),
+            ("url", "url", "TEXT", "text"),
+            ("now_playing", "now_playing", "INTEGER", "bool"),
+            ("favorited", "favorited", "INTEGER", "bool"),
+        ],
+    },
+    {
+        "table": "books",
+        "field": "books",
+        "ts_cols": [],
+        "ts_extractor": None,
+        "indexed_cols": ["read_date"],
+        "scalar_cols": [
+            ("title", "title", "TEXT", "text"),
+            ("isbn", "isbn", "TEXT", "text"),
+            ("isbn13", "isbn13", "TEXT", "text"),
+            ("number_of_pages", "number_of_pages", "INTEGER", "int"),
+            ("publication_year", "publication_year", "INTEGER", "int"),
+            ("original_publication_year", "original_publication_year", "INTEGER", "int"),
+            ("read_date", "read_date", "TEXT", "text"),
+            ("my_review", "my_review", "TEXT", "text"),
+            ("stars", "stars", "REAL", "real"),
+            ("source", "source", "TEXT", "text"),
+        ],
+        "m2m_cols": [
+            ("book_authors", "book_id", "author", "authors"),
+        ],
+    },
+    {
+        "table": "movies_and_tv",
+        "field": "movies_and_tv",
+        "ts_cols": ["watched_at"],
+        "ts_extractor": lambda m: [
+            _ts_to_unix(m.watched_at) if m.HasField("watched_at") else None,
+        ],
+        "indexed_cols": ["watched_at"],
+        "scalar_cols": [
+            ("title", "title", "TEXT", "text"),
+            ("year", "year", "INTEGER", "int"),
+            ("episode_number", "episode_number", "TEXT", "text"),
+            ("season", "season", "TEXT", "text"),
+            ("imdb_id", "imdbId", "TEXT", "text"),
+            ("tmdb_id", "tmdbId", "TEXT", "text"),
+            ("media_type", "type", "TEXT", "text"),
+            ("review", "review", "TEXT", "text"),
+            ("stars", "stars", "REAL", "real"),
+            ("url", "url", "TEXT", "text"),
+            ("source", "source", "TEXT", "text"),
         ],
     },
     {
@@ -463,6 +524,11 @@ def create_tables(conn: sqlite3.Connection):
         for col_name, _, sql_type, _ in tdef["scalar_cols"]:
             col_defs.append(f"{col_name} {sql_type}")
         cur.execute(f"CREATE TABLE IF NOT EXISTS {tdef['table']} ({', '.join(col_defs)})")
+        for col in tdef.get("indexed_cols", []):
+            cur.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_{tdef['table']}_{col} "
+                f"ON {tdef['table']} ({col})"
+            )
 
     # Event tables
     for evt_def in EVENT_TYPE_DEFS.values():

@@ -5,6 +5,7 @@ import argparse
 import os
 import sys
 from collections import defaultdict
+from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -21,46 +22,6 @@ EVENT_TYPES_TO_SHOW = [
     "trip",
     "nodataperiod",
 ]
-
-
-# Short activity codes (from MoveActivity.activity) mapped to display names.
-ACTIVITY_NAMES = {
-    "wlk": "Walk",
-    "run": "Run",
-    "cyc": "Bicycle",
-    "stu": "Stairs Up",
-    "std": "Stairs Down",
-    "sta": "Stationary",
-    "bus": "Bus",
-    "car": "Car",
-    "mtc": "Motorcycle",
-    "ski": "Cross-country Ski",
-    "mtr": "Metro",
-    "sub": "Subway",
-    "trm": "Tram",
-    "trn": "Train",
-    "boa": "Boating",
-    "sct": "Scooting",
-    "trp": "Transport",
-    "non": "None",
-    "mcy": "Maybe Cycling",
-    "ndt": "Undetermined",
-    "air": "Airplane",
-    "dhs": "Downhill Skiing",
-    "sbd": "Snowboarding",
-    "rol": "Rollerskating",
-    "hoo": "Hoops",
-    "row": "Rowing",
-    "slb": "Sailing",
-    "pdl": "Paddling",
-    "aeb": "Assisted E-Bike",
-    "swm": "Swimming",
-    "pub": "Public Transport",
-}
-
-
-def _activity_name(code: str) -> str:
-    return ACTIVITY_NAMES.get(code, code)
 
 
 def _fmt_time(dt) -> str:
@@ -140,7 +101,7 @@ def _print_movement_details(evt, indent: str = "    "):
     for a in mv.move_activities:
         if not a.activity:
             continue
-        parts = [_activity_name(a.activity)]
+        parts = [timeatlas.getActivityName(a.activity)]
         if a.distance_meters:
             parts.append(_fmt_distance(a.distance_meters))
         if a.steps:
@@ -148,6 +109,81 @@ def _print_movement_details(evt, indent: str = "    "):
         if a.duration_secs:
             parts.append(_fmt_hm(a.duration_secs))
         print(f"{indent}- {'  '.join(parts)}")
+
+
+def _fmt_stars(stars: float) -> str:
+    if not stars:
+        return ""
+    text = f"{stars:.1f}".rstrip("0").rstrip(".")
+    return f"  {text}/5"
+
+
+def _print_review(text: str, indent: str = "      "):
+    """Print a book/movie review, one line per source line."""
+    for line in text.splitlines():
+        if line.strip():
+            print(f"{indent}> {line}")
+
+
+def _print_books(date_str: str, show_notes: bool):
+    """Print books finished on this date."""
+    books = timeatlas.getBooks(date_str, date_str)
+    if not books:
+        return
+    print("  Books read:")
+    for b in books:
+        authors = ", ".join(b.authors)
+        parts = [b.title or "(untitled)"]
+        if authors:
+            parts.append(f"by {authors}")
+        line = "  ".join(parts) + _fmt_stars(b.stars)
+        if b.number_of_pages:
+            line += f"  ({b.number_of_pages} pages)"
+        print(f"    - {line}")
+        if show_notes and b.my_review:
+            _print_review(b.my_review)
+
+
+def _print_movies_and_tv(start, end, show_notes: bool):
+    """Print movies and TV episodes watched during this date."""
+    entries = timeatlas.getMoviesAndTv(start, end)
+    if not entries:
+        return
+    print("  Watched:")
+    for m in entries:
+        label = m.title or "(untitled)"
+        if m.year:
+            label += f" ({m.year})"
+        details = []
+        if m.season:
+            details.append(f"season {m.season}")
+        if m.episode_number:
+            details.append(f"episode {m.episode_number}")
+        if m.type and not details:
+            details.append(m.type)
+        tail = f"  [{', '.join(details)}]" if details else ""
+        print(f"    - {label}{tail}{_fmt_stars(m.stars)}")
+        if show_notes and m.review:
+            _print_review(m.review)
+
+
+def _print_lastfm_tracks(start, end):
+    """Print Last.fm tracks scrobbled during this date, with local play times."""
+    tracks = timeatlas.getLastFmTracks(start, end)
+    if not tracks:
+        return 0
+    print("  Music:")
+    for t in tracks:
+        played = (
+            datetime.fromtimestamp(t.played_at.seconds, tz=start.tzinfo)
+            if t.HasField("played_at")
+            else None
+        )
+        label = f"{t.artist} - {t.name}" if t.artist else (t.name or "(untitled)")
+        tail = f"  ({t.album})" if t.album else ""
+        heart = "  <3" if t.favorited else ""
+        print(f"    {_fmt_time(played)}  {label}{tail}{heart}")
+    return len(tracks)
 
 
 def _print_date(date_str, start, end, show_notes: bool, show_summary: bool):
@@ -210,6 +246,10 @@ def _print_date(date_str, start, end, show_notes: bool, show_summary: bool):
             if show_notes and evt.type == timeatlas_pb2.PLACEVISIT:
                 _print_notes(evt.meta.ID)
 
+    _print_books(date_str, show_notes)
+    _print_movies_and_tv(start, end, show_notes)
+    track_count = _print_lastfm_tracks(start, end)
+
     # Sleeps are summarized, not printed.
     sleeps = timeatlas.getEvents("sleep", start, end)
     total_sleep_secs = sum(s.sleep.asleep_secs for s in sleeps)
@@ -219,6 +259,8 @@ def _print_date(date_str, start, end, show_notes: bool, show_summary: bool):
 
     if show_summary:
         summary_lines = []
+        if track_count:
+            summary_lines.append(f"Music: {track_count} tracks")
         if total_sleep_secs:
             summary_lines.append(f"Sleep total: {_fmt_hm(total_sleep_secs)}")
 
@@ -238,7 +280,7 @@ def _print_date(date_str, start, end, show_notes: bool, show_summary: bool):
                     parts.append(_fmt_hm(daily_duration_by_activity[act]))
                 if daily_steps_by_activity.get(act):
                     parts.append(f"{daily_steps_by_activity[act]} steps")
-                summary_lines.append(f"  {_activity_name(act)}: {', '.join(parts)}")
+                summary_lines.append(f"  {timeatlas.getActivityName(act)}: {', '.join(parts)}")
 
         if summary_lines:
             print("  --")
