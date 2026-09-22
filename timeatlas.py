@@ -7,6 +7,8 @@ populated by setup.py.
 import os
 import sqlite3
 import sys
+import time
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import timeatlas_pb2
@@ -358,3 +360,189 @@ def getLastFmTracks(from_dt: datetime, to_dt: datetime) -> list[timeatlas_pb2.La
         t.ParseFromString(data)
         out.append(t)
     return out
+
+
+# ---------------------------------------------------------------------------
+# Tally validation (port of data/tallyvalid.go)
+# ---------------------------------------------------------------------------
+
+class ValidationError(Exception):
+    pass
+
+
+TallyValidationError = ValidationError
+
+
+def validateTally(tally: timeatlas_pb2.Tally):
+    """Validate a Tally message. Raises TallyValidationError on failure."""
+    if not tally.eventID:
+        raise TallyValidationError("tally-event-id-empty")
+
+    if not tally.HasField("time") or not tally.time.HasField("UTC_timestamp"):
+        raise TallyValidationError("tally-time-invalid")
+    ts = tally.time.UTC_timestamp
+    if ts.seconds == 0 and ts.nanos == 0:
+        raise TallyValidationError("tally-time-invalid")
+
+    if not tally.name:
+        raise TallyValidationError("tally-name-empty")
+    if tally.name != tally.name.lower():
+        raise TallyValidationError("tally-name-not-lower-case")
+
+    if not tally.who:
+        raise TallyValidationError("tally-who-empty")
+
+    if not tally.unit and not tally.category:
+        raise TallyValidationError("tally-unit-and-category-empty")
+    if tally.unit and tally.unit != tally.unit.lower():
+        raise TallyValidationError("tally-unit-not-lower-case")
+
+    if tally.value > 16777216:
+        raise TallyValidationError("tally-too-large")
+    if tally.value < 0:
+        raise TallyValidationError("tally-negative")
+
+
+def validateBook(book: timeatlas_pb2.Book):
+    """Validate a Book message. Raises ValidationError on failure."""
+    if not book.title:
+        raise ValidationError("book-title-empty")
+    if book.stars != 0 and not (1 <= book.stars <= 5):
+        raise ValidationError("book-stars-out-of-range")
+
+
+def validateMovieAndTv(movie: timeatlas_pb2.MovieAndTv):
+    """Validate a MovieAndTv message. Raises ValidationError on failure."""
+    if not movie.title:
+        raise ValidationError("movie-title-empty")
+    if movie.stars != 0 and not (1 <= movie.stars <= 5):
+        raise ValidationError("movie-stars-out-of-range")
+
+
+# ---------------------------------------------------------------------------
+# Insert helpers
+# ---------------------------------------------------------------------------
+
+def _populate_meta(msg):
+    """Set meta.ID, created_at and updated_at on a protobuf message."""
+    meta = msg.meta
+    meta.ID = str(uuid.uuid4())
+    now = time.time()
+    secs = int(now)
+    nanos = int((now - secs) * 1e9)
+    meta.created_at.UTC_timestamp.seconds = secs
+    meta.created_at.UTC_timestamp.nanos = nanos
+    meta.updated_at.UTC_timestamp.seconds = secs
+    meta.updated_at.UTC_timestamp.nanos = nanos
+
+
+def _write_update_file(directory: timeatlas_pb2.FullDirectory):
+    """Serialize a FullDirectory to a timestamped .pb file in iCloud."""
+    icloud_dir = getIcloudDir()
+    millis = int(time.time() * 1000)
+    filename = f"{millis}_update.pb"
+    filepath = os.path.join(icloud_dir, filename)
+    with open(filepath, "wb") as f:
+        f.write(directory.SerializeToString())
+    return filepath
+
+
+def insertTallies(tallies: list[timeatlas_pb2.Tally]) -> str:
+    """Validate, assign meta, and write tallies to iCloud as a .pb file.
+
+    Returns the path to the written file.
+    """
+    for t in tallies:
+        _populate_meta(t)
+        validateTally(t)
+
+    directory = timeatlas_pb2.FullDirectory()
+    directory.tallies.extend(tallies)
+    return _write_update_file(directory)
+
+
+def insertBooks(books: list[timeatlas_pb2.Book]) -> str:
+    """Validate, assign meta, and write books to iCloud as a .pb file.
+
+    Returns the path to the written file.
+    """
+    for b in books:
+        _populate_meta(b)
+        validateBook(b)
+
+    directory = timeatlas_pb2.FullDirectory()
+    directory.books.extend(books)
+    return _write_update_file(directory)
+
+
+def insertMoviesAndTvs(movies: list[timeatlas_pb2.MovieAndTv]) -> str:
+    """Validate, assign meta, and write movies/TV entries to iCloud as a .pb file.
+
+    Returns the path to the written file.
+    """
+    for m in movies:
+        _populate_meta(m)
+        validateMovieAndTv(m)
+
+    directory = timeatlas_pb2.FullDirectory()
+    directory.movies_and_tv.extend(movies)
+    return _write_update_file(directory)
+
+
+# ---------------------------------------------------------------------------
+# Updates
+# ---------------------------------------------------------------------------
+
+# Maps protobuf message type -> FullDirectory field name.
+_MSG_TYPE_TO_FIELD = {
+    timeatlas_pb2.Event.DESCRIPTOR.full_name: "events",
+    timeatlas_pb2.JournalEntry.DESCRIPTOR.full_name: "journal_entries",
+    timeatlas_pb2.KnownPlace.DESCRIPTOR.full_name: "known_places",
+    timeatlas_pb2.Media.DESCRIPTOR.full_name: "media",
+    timeatlas_pb2.PatMessage.DESCRIPTOR.full_name: "pat_messages",
+    timeatlas_pb2.Tally.DESCRIPTOR.full_name: "tallies",
+    timeatlas_pb2.AIProfile.DESCRIPTOR.full_name: "ai_profiles",
+    timeatlas_pb2.Embedding.DESCRIPTOR.full_name: "embeddings",
+    timeatlas_pb2.Pattern.DESCRIPTOR.full_name: "patterns",
+    timeatlas_pb2.ChatLearning.DESCRIPTOR.full_name: "chat_learnings",
+    timeatlas_pb2.Weather.DESCRIPTOR.full_name: "weather",
+    timeatlas_pb2.CalendarEvent.DESCRIPTOR.full_name: "calendar_events",
+    timeatlas_pb2.SettingsValues.DESCRIPTOR.full_name: "settings_values",
+    timeatlas_pb2.PrimaryDevice.DESCRIPTOR.full_name: "primary_devices",
+    timeatlas_pb2.LastFmTrack.DESCRIPTOR.full_name: "lastfm_tracks",
+    timeatlas_pb2.Book.DESCRIPTOR.full_name: "books",
+    timeatlas_pb2.MovieAndTv.DESCRIPTOR.full_name: "movies_and_tv",
+}
+
+
+def updateObjects(objects: list) -> str:
+    """Write updated objects to iCloud as a .pb file.
+
+    All objects must have a populated meta.ID. Objects are grouped by type
+    and placed into the appropriate FullDirectory field.
+
+    Returns the path to the written file.
+    """
+    if not objects:
+        raise ValueError("No objects to update")
+
+    for obj in objects:
+        if not obj.meta.ID:
+            raise ValueError(f"Object missing meta.ID: {obj}")
+
+        # Bump updated_at
+        now = time.time()
+        secs = int(now)
+        nanos = int((now - secs) * 1e9)
+        obj.meta.updated_at.UTC_timestamp.seconds = secs
+        obj.meta.updated_at.UTC_timestamp.nanos = nanos
+
+    directory = timeatlas_pb2.FullDirectory()
+    for obj in objects:
+        type_name = obj.DESCRIPTOR.full_name
+        field = _MSG_TYPE_TO_FIELD.get(type_name)
+        if field is None:
+            raise ValueError(f"Unknown message type: {type_name}")
+        getattr(directory, field).append(obj)
+
+    return _write_update_file(directory)
