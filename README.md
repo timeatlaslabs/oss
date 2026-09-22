@@ -130,6 +130,39 @@ python tools/addnote.py -w
 python tools/addnote.py -d 2026-04-15 -f note.txt
 ```
 
+## insert_log.py
+
+Insert a tally (log entry) into Time Atlas. The entry is written as a protobuf
+file into the iCloud directory so the app picks it up on its next sync.
+
+```bash
+# Log 200 ml of water for today.
+python tools/insert_log.py water 200 ml
+
+# Log with a category.
+python tools/insert_log.py wine 2 glass --category white
+
+# Log for a specific date and person.
+python tools/insert_log.py weight 4.3 kg --who baby --date 2026-04-20
+```
+
+## activity_replace.py
+
+Interactively replace one activity type with another across a date range. The
+tool presents a numbered list of activities to choose from, shows how many
+activities and total distance will be affected, and asks for confirmation
+before writing the update.
+
+```bash
+python tools/activity_replace.py
+```
+
+The tool will prompt you for:
+1. A date range (from / to)
+2. The activity to change **from** (e.g. `trp` — Transport)
+3. The activity to change **to** (e.g. `bus` — Bus)
+4. Confirmation before writing the update
+
 ## weather.py
 
 Query the weather table for a date range. For each date prints the temperature

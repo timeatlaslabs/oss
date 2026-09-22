@@ -50,6 +50,22 @@ Then create following tools:
 - date_query.py which takes a range of dates (or just one date) and prints their events in a nice grouped manner.
 - knownplaces.py which takes a known place name and for each known place with the name prints their address and lists all place visit events to the known place (query by placevisit known-place-id)
 
+#4.1 Inserts
+
+Add a function to timeatlas.py to insert objects to the database. For now, let's add insertTallies() and insertBooks() and insertMoviesAndTvs(). They would take as parameter list of the appropriate protobuffers, and add to each of them add meta field with id as a random UUID, and then populate creation time and update time to be the curren time. Then it would create a FullDirectory protobuffer with the right field populated, and create a file into the sync directory with name unix-timestamp-in-milliseconds + "\_update.pb".
+
+For tallies, add a validation function which is called before inserting, and if it fails, it will throw exception. The validation logic in go is in data/tallyvalid.go, write it in python.
+
+Then create a python tool in tools/ to insert a tally, named "insert_log.py", which will takes a command line the tally name, unit, value, who (optional) and date (by default today). And then it will get the date event id and set that as eventID (and throw error if not found).
+
+For books and moviesAndTv have similar validation: they must set the name/title, and rating must be between 1..5 or not set (0).
+
+#4.2 Updates
+
+Then add a function to do updates, it would take a list of objects, and based on their type put them into the field in a FullDirectory message, and insert that full directory proto similarly as in inserts to a file. It should check all objects have a meta set.
+
+Then create a tool tools/activity_replace.py which interactively asks from which activity to which activity to change, giving a list of activities as in timeatlas.py ACTIVITY_NAMES to choose from interactively. Before this, it would ask the date range to apply. Then it would load all move events from the date range, and change all activities inside the moveActivities as requested by user. Then user would be asked to confirm before creating the update by passing all the changed move events (only changed ones). In confirmation, it should mention that how many activities are change (total distance as well).
+
 #5 Python Tools -- additional features
 
 For both date_query.py and knownplaces.py, add a flag "--show-notes" to include notes as well. This means loading journal entry's for each event ID encountered (date events, place visits). If there is no note for an event, do not show anything.
