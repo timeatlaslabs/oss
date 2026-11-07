@@ -1,4 +1,5 @@
-This repository contains open source tools to access data from the Time Atlas app.
+This repository contains open source tools to access data from the Time Atlas app: https://apps.apple.com/us/app/time-atlas-life-tracker/id6738783076.
+
 
 # Accessing data of the Time Atlas app
 Time Atlas stores its data for syncing in iCloud, see `Library/Mobile Documents/iCloud~com~timeatlaslabs~Pat/Documents/` on your Apple Mac computer. On Windows the folder lives under `%USERPROFILE%\iCloudDrive\iCloud~com~timeatlaslabs~Pat\Documents`.
