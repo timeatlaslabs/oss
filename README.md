@@ -147,6 +147,106 @@ python tools/insert_log.py wine 2 glass --category white
 python tools/insert_log.py weight 4.3 kg --who baby --date 2026-04-20
 ```
 
+## add_movie.py
+
+Add a watched movie or TV show. Required: `--title`, `--year`, `--watched-at`
+(`now` or a unix timestamp) and either `--imdb-id` or `--tmdb-id`. `--stars`
+(1–5) is optional. Entries are stored as type `movie` unless you pass
+`--type tv`, which stores them as `episode`. Entries are tagged with source `oss`.
+
+```bash
+# Add a movie watched right now.
+python tools/add_movie.py --title "Dune: Part Two" --year 2024 --stars 4.5 \
+    --watched-at now --imdb-id tt15239678
+
+# Add a TV episode watched at a given time.
+python tools/add_movie.py --title "Severance" --year 2022 --stars 5 \
+    --watched-at 1739980800 --tmdb-id 95396 --type tv --season 2 --episode 10
+
+# Batch import from CSV (validate first with --dry-run).
+python tools/add_movie.py --csv movies.csv --dry-run
+python tools/add_movie.py --csv movies.csv
+```
+
+The CSV needs a header row. Columns use the option names: `title`, `year`,
+`stars`, `watched_at`, `imdb_id`, `tmdb_id`, `type`, `season`, `episode`,
+`review`, `url`. `type` is `movie` (the default) or `tv`; TV entries are stored
+with type `episode`. All rows are checked before anything is written. If any row is
+invalid, the tool lists the errors by line number and writes nothing.
+
+Example `movies.csv`:
+
+```csv
+title,year,stars,watched_at,imdb_id,tmdb_id,type,season,episode,review
+Heat,1995,4.5,1731283200,tt0113277,,movie,,,"Great shootout scene"
+Severance,2022,5,1739980800,,95396,tv,2,10,
+Dune: Part Two,2024,,now,tt15239678,,movie,,,
+```
+
+## delete_movie.py
+
+Delete a movie or TV show entry by title (case-insensitive) or IMDb ID. The
+tool looks the entry up in the local database and writes an update with
+`deleted_at` set. If several entries match, such as rewatches or episodes of a
+series, it lists them and asks which ones to delete.
+
+```bash
+# Delete by title (asks for confirmation).
+python tools/delete_movie.py --title "Heat"
+
+# Delete every entry with this IMDb ID without asking.
+python tools/delete_movie.py --imdb-id tt0113277 --yes
+```
+
+The entry is removed from `timeatlas.db` on the next `python sync.py`.
+
+## add_book.py
+
+Add a book you have read. Required: `--title`, at least one `--author` (repeat
+for co-authors), `--read-date` (`today` or `YYYY-mm-dd`) and either `--isbn` or
+`--isbn13`. `--stars` (1–5), `--pages`, `--year`, `--original-year` and
+`--review` are optional. Books are tagged with source `oss`.
+
+```bash
+# Add a book finished today.
+python tools/add_book.py --title "Four Thousand Weeks" --author "Oliver Burkeman" \
+    --stars 4 --read-date today --isbn13 9780374159122
+
+# Multiple authors and extra details.
+python tools/add_book.py --title "Good Omens" --author "Terry Pratchett" \
+    --author "Neil Gaiman" --stars 4.5 --read-date 2026-10-01 --isbn 0060853980 \
+    --pages 432 --year 2006 --original-year 1990
+
+# Batch import from CSV (validate first with --dry-run).
+python tools/add_book.py --csv books.csv --dry-run
+python tools/add_book.py --csv books.csv
+```
+
+The CSV columns are `title`, `authors`, `stars`, `read_date`, `isbn`, `isbn13`,
+`pages`, `year`, `original_year` and `review`. Separate multiple authors with `;`.
+As with movies, all rows are checked before anything is written.
+
+Example `books.csv`:
+
+```csv
+title,authors,stars,read_date,isbn,isbn13,pages
+Good Omens,Terry Pratchett;Neil Gaiman,4.5,2026-10-01,0060853980,,432
+Maniac,Benjamín Labatut,,today,,9788433911001,
+```
+
+## delete_book.py
+
+Delete a book by title (case-insensitive) or ISBN (ISBN-10 or ISBN-13). Works
+like `delete_movie.py`: it asks for confirmation, or which ones to delete if
+several books match.
+
+```bash
+python tools/delete_book.py --title "Four Thousand Weeks"
+python tools/delete_book.py --isbn 9780374159122 --yes
+```
+
+The book is removed from `timeatlas.db` on the next `python sync.py`.
+
 ## activity_replace.py
 
 Interactively replace one activity type with another across a date range. The

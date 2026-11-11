@@ -341,6 +341,55 @@ def getMoviesAndTv(from_dt: datetime, to_dt: datetime) -> list[timeatlas_pb2.Mov
     return out
 
 
+def findBooks(title: str | None = None, isbn: str | None = None) -> list[timeatlas_pb2.Book]:
+    """Return Books matching a title (case-insensitive) or ISBN (ISBN-10 or ISBN-13).
+
+    Sorted by read_date ascending.
+    """
+    if bool(title) == bool(isbn):
+        raise ValueError("Provide exactly one of title or isbn")
+    if title:
+        where, params = "title = ? COLLATE NOCASE", (title,)
+    else:
+        where, params = "isbn = ? OR isbn13 = ?", (isbn, isbn)
+    with _connect() as conn:
+        rows = conn.execute(
+            f"SELECT data FROM books WHERE {where} ORDER BY read_date ASC", params
+        ).fetchall()
+    out = []
+    for (data,) in rows:
+        b = timeatlas_pb2.Book()
+        b.ParseFromString(data)
+        out.append(b)
+    return out
+
+
+def findMoviesAndTv(
+    title: str | None = None, imdb_id: str | None = None
+) -> list[timeatlas_pb2.MovieAndTv]:
+    """Return MovieAndTv entries matching a title (case-insensitive) or IMDb ID.
+
+    Sorted by watched_at ascending.
+    """
+    if bool(title) == bool(imdb_id):
+        raise ValueError("Provide exactly one of title or imdb_id")
+    if title:
+        where, param = "title = ? COLLATE NOCASE", title
+    else:
+        where, param = "imdb_id = ?", imdb_id
+    with _connect() as conn:
+        rows = conn.execute(
+            f"SELECT data FROM movies_and_tv WHERE {where} ORDER BY watched_at ASC",
+            (param,),
+        ).fetchall()
+    out = []
+    for (data,) in rows:
+        m = timeatlas_pb2.MovieAndTv()
+        m.ParseFromString(data)
+        out.append(m)
+    return out
+
+
 def getLastFmTracks(from_dt: datetime, to_dt: datetime) -> list[timeatlas_pb2.LastFmTrack]:
     """Return Last.fm tracks played within [from_dt, to_dt].
 
@@ -546,3 +595,17 @@ def updateObjects(objects: list) -> str:
         getattr(directory, field).append(obj)
 
     return _write_update_file(directory)
+
+
+def deleteObjects(objects: list) -> str:
+    """Mark objects deleted by setting meta.deleted_at and writing an update file.
+
+    Returns the path to the written file.
+    """
+    now = time.time()
+    secs = int(now)
+    nanos = int((now - secs) * 1e9)
+    for obj in objects:
+        obj.meta.deleted_at.UTC_timestamp.seconds = secs
+        obj.meta.deleted_at.UTC_timestamp.nanos = nanos
+    return updateObjects(objects)
